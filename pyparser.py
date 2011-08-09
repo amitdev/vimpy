@@ -11,14 +11,14 @@ class visitor(ast.NodeVisitor):
         self.module = val
         self.path = pth
         self.klass = None
-        print '\nAdding Module %s in %s----------' % (self.module, self.path)
+        #print '\nAdding Module %s in %s----------' % (self.module, self.path)
         st.addmodule(self.module, self.path)
         ast.NodeVisitor.generic_visit(self, node)
-        print 'Done Module %s in %s----------\n' % (self.module, self.path)
+        #print 'Done Module %s in %s----------\n' % (self.module, self.path)
 
     def visit_ClassDef(self, node):
         self.klass = node.name
-        print 'Adding class %s in %s' % (self.klass, self.module)
+        #print 'Adding class %s in %s' % (self.klass, self.module)
         st.addclass(node.name, self.module, self.path, node.lineno)
         ast.NodeVisitor.generic_visit(self, node)
         self.klass = None

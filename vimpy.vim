@@ -12,9 +12,9 @@ fun! GetMatch(a)
 python << endpython
 import vim
 a = vim.eval("a:a")
-#c = [i for i in st.modules if i.startswith(a)]
-#d = [{'word' : '%s in %s' % (i, j), 'dup' : '1'} for i in c for j in st.modules[i]]
-d = [i for i in st.modules if i.startswith(a)]
+c = [i for i in st.modules.d if i.startswith(a)]
+d = [{'word' : i, 'menu' : st.modules.d[i]} for i in c]
+#d = [i for i in st.modules if i.startswith(a)]
 vim.command("let l:res = %r" % d)
 endpython
 return l:res
@@ -62,8 +62,8 @@ vim.eval('feedkeys("i")')
 #        vim.eval('feedkeys("")')
 endpython
 setlocal completefunc=CompleteModules
-exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseModule()<cr>'
-exe 'inoremap <silent> <tab> <c-x><c-u>'
+"exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseModule()<cr>'
+"exe 'inoremap <silent> <tab> <c-x><c-u>'
 endfunction
 
 function! CloseModule()
