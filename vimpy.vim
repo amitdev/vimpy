@@ -5,22 +5,31 @@ endif
 
 python << endpython
 import storage
+import vim
 st = storage.storage('pyth')
 endpython
 
-fun! GetMatch(a)
+fun! GetMatch(pfx)
 python << endpython
-import vim
-a = vim.eval("a:a")
-c = [i for i in st.modules.d if i.startswith(a)]
-d = [{'word' : i, 'menu' : st.modules.d[i]} for i in c]
-#d = [i for i in st.modules if i.startswith(a)]
-vim.command("let l:res = %r" % d)
+pfx = vim.eval("a:pfx")
+matches = [i for i in st.modules.d if i.startswith(pfx)]
+completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
+vim.command("let l:res = %r" % completions)
 endpython
 return l:res
 endfun
 
-fun! Completer(findstart, base)
+fun! GetClass(pfx)
+python << endpython
+pfx = vim.eval("a:pfx")
+matches = [i for i in st.classes.d if i.startswith(pfx)]
+completions = [{'word' : i, 'menu' : st.classes.d[i][0]} for i in matches]
+vim.command("let l:res = %r" % completions)
+endpython
+return l:res
+endfun
+
+fun! Completer(findstart, base, fn)
 	  if a:findstart
 	    let line = getline('.')
 	    let start = col('.') - 1
@@ -29,15 +38,28 @@ fun! Completer(findstart, base)
 	    endwhile
 	    return start
 	  else
-	    return GetMatch(a:base)
+	    return call (a:fn, [a:base])
 	  endif
 endfun
 
 fun! CompleteModules(findstart, base)
-     return Completer(a:findstart, a:base)
+     return Completer(a:findstart, a:base, function('GetMatch'))
+endfun
+
+fun! CompleteClasses(findstart, base)
+     return Completer(a:findstart, a:base, function('GetClass'))
 endfun
 
 function! OpenClass()
+exe "split ~"
+exe "normal iEnter Class Name: "
+call feedkeys("i")
+setlocal completefunc=CompleteClasses
+exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseClass()<cr>'
+exe 'inoremap <silent> <tab> <c-x><c-u>'
+endfunction
+
+function! OpenModule()
 exe "split ~"
 exe "normal iEnter Class Name: "
 call feedkeys("i")
@@ -46,35 +68,32 @@ exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseModule()<cr>'
 exe 'inoremap <silent> <tab> <c-x><c-u>'
 endfunction
 
-function! OpenModule()
-
+function! CloseModule()
+    let l:pth = ''
 python << endpython
-import vim
-vim.command("split ~")
-vim.command("normal iEnter Module Name: ")
-#if st.modules:
-    #it = st.modules.iteritems()
-    #k, v = it.next()
-    #it = None
-    #vim.command("let l:slen = '%s (%s)'" % (k, v[0]))
-    #l = len('%s in %s' % (k, v[0]))
-    #l = len(st.modules[0])
-vim.eval('feedkeys("i")')
-#vim.eval('feedkeys("")')
-#if st.modules:
-#    for i in xrange(l):
-#        vim.eval('feedkeys("")')
+if ':' in vim.current.buffer[0]:
+    k = vim.current.buffer[0].split(':')[1].strip()
+    if k in st.modules.d:
+        vim.command("let l:pth = '%s'" % st.modules.d[k])
 endpython
-setlocal completefunc=CompleteModules
-"exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseModule()<cr>'
-"exe 'inoremap <silent> <tab> <c-x><c-u>'
+    echomsg 'Got ' . l:pth
+	execute ":bdelete!"	
+	execute ":e " . l:pth
+	iunmap <cr>
+	iunmap <tab>
 endfunction
 
-function! CloseModule()
-	let s = getline(1)
-	let pth = strpart(s, stridx(s, ' in ')+4)
+function! CloseClass()
+    let l:pth = ''
+python << endpython
+if ':' in vim.current.buffer[0]:
+    k = vim.current.buffer[0].split(':')[1].strip()
+    if k in st.classes.d:
+        vim.command("let l:pth = '%s'" % st.modules.d[k][1])
+endpython
+    echomsg 'Got ' . l:pth
 	execute ":bdelete!"	
-	execute ":e " . pth
+	execute ":e " . l:pth
 	iunmap <cr>
 	iunmap <tab>
 endfunction

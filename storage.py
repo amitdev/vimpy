@@ -60,5 +60,5 @@ class storage(object):
     def close(self):
         with open(self.filename, 'w') as f:
             pickle.dump(self.modules.d, f)
-            pickle.dump(self.classes, f)
+            pickle.dump(self.classes.d, f)
             pickle.dump(self.modifiedtime, f)  
