@@ -20,7 +20,7 @@ endpython
 return l:res
 endfun
 
-fun! CompleteModules(findstart, base)
+fun! Completer(findstart, base)
 	  if a:findstart
 	    let line = getline('.')
 	    let start = col('.') - 1
@@ -31,6 +31,10 @@ fun! CompleteModules(findstart, base)
 	  else
 	    return GetMatch(a:base)
 	  endif
+endfun
+
+fun! CompleteModules(findstart, base)
+     return Completer(a:findstart, a:base)
 endfun
 
 function! OpenClass()
