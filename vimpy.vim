@@ -3,6 +3,8 @@ if !has('python')
 	finish
 endif
 
+let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'] }
+
 python << endpython
 import storage
 import vim
@@ -50,50 +52,53 @@ fun! CompleteClasses(findstart, base)
      return Completer(a:findstart, a:base, function('GetClass'))
 endfun
 
+fun! OpenBuf(type)
+    let bp = s:bufdetails[a:type]
+    exe "split " . bp[0]
+    setlocal buftype=nofile
+    setlocal bufhidden=hide
+    setlocal noswapfile
+    exe "normal i" . bp[1]
+    call feedkeys("i")
+    setlocal completeopt=longest,menu
+    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call ' . bp[2] .'()<cr>'
+    exe 'inoremap <silent> <tab> <c-x><c-u>'
+endfun
+
 function! OpenClass()
-exe "split ~"
-exe "normal iEnter Class Name: "
-call feedkeys("i")
-setlocal completefunc=CompleteClasses
-exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseClass()<cr>'
-exe 'inoremap <silent> <tab> <c-x><c-u>'
+    call OpenBuf('class') 
+    setlocal completefunc=CompleteClasses
 endfunction
 
 function! OpenModule()
-exe "split ~"
-exe "normal iEnter Class Name: "
-call feedkeys("i")
-setlocal completefunc=CompleteModules
-exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseModule()<cr>'
-exe 'inoremap <silent> <tab> <c-x><c-u>'
+    call OpenBuf('module') 
+    setlocal completefunc=CompleteModules
 endfunction
 
 function! CloseModule()
-    let l:pth = ''
 python << endpython
 if ':' in vim.current.buffer[0]:
     k = vim.current.buffer[0].split(':')[1].strip()
     if k in st.modules.d:
-        vim.command("let l:pth = '%s'" % st.modules.d[k])
+        pth = st.modules.d[k]
+        vim.command("bdelete!")	
+        vim.command("e %s" % pth)
 endpython
-    echomsg 'Got ' . l:pth
-	execute ":bdelete!"	
-	execute ":e " . l:pth
 	iunmap <cr>
 	iunmap <tab>
 endfunction
 
 function! CloseClass()
-    let l:pth = ''
 python << endpython
 if ':' in vim.current.buffer[0]:
     k = vim.current.buffer[0].split(':')[1].strip()
     if k in st.classes.d:
-        vim.command("let l:pth = '%s'" % st.modules.d[k][1])
+        (_, pth, line) = st.classes.d[k]
+        vim.command("bdelete!")	
+        vim.command("e %s" % pth)
+        #TODO: Check if moving to class name col is better
+        vim.current.window.cursor = (line, 0)
 endpython
-    echomsg 'Got ' . l:pth
-	execute ":bdelete!"	
-	execute ":e " . l:pth
 	iunmap <cr>
 	iunmap <tab>
 endfunction
