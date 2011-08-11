@@ -28,6 +28,7 @@ class storage(object):
     def __init__(self, filename):
         self.modules = DictWrapper({})
         self.classes = DictWrapper({})
+        self.functs  = DictWrapper({})
         self.modifiedtime = {}
         self.filename = filename        
         if os.path.exists(self.filename):
@@ -41,7 +42,10 @@ class storage(object):
     def modified(self, path):
         self.modifiedtime[path] = os.path.getmtime(path)
         self.changed = True        
-    
+
+    def addfunction(self, name, module, path, line):
+        self.functs.add(name, (module, path, line))
+
     def addclass(self, name, module, path, line):
         self.classes.add(name, (module, path, line))
         
@@ -53,6 +57,7 @@ class storage(object):
             try:
                 self.modules = DictWrapper(pickle.load(f))
                 self.classes = DictWrapper(pickle.load(f))
+                self.functs = DictWrapper(pickle.load(f))
                 self.modifiedtime = pickle.load(f)
             except EOFError:
                 print 'Error while reading %s' % self.filename                
@@ -61,4 +66,5 @@ class storage(object):
         with open(self.filename, 'w') as f:
             pickle.dump(self.modules.d, f)
             pickle.dump(self.classes.d, f)
+            pickle.dump(self.functs.d, f)
             pickle.dump(self.modifiedtime, f)  

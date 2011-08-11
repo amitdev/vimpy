@@ -23,11 +23,11 @@ class visitor(ast.NodeVisitor):
         ast.NodeVisitor.generic_visit(self, node)
         self.klass = None
 
-#    def visit_FunctionDef(self, node):
-#        if self.klass is not None:
-#            print "Method %s at %s:%d" % (node.name, self.klass, node.lineno)
-#        else:
-#            print "Function %s at %s:%d" % (node.name, self.module, node.lineno)
+    def visit_FunctionDef(self, node):
+        module = self.module
+        if self.klass is not None:
+            module = '%s :: %s' % (self.module, self.klass)
+        st.addfunction(node.name, module, self.path, node.lineno)
 
 def parse(filename, pth):
     if st.ismodified(pth):

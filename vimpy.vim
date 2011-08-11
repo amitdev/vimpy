@@ -3,7 +3,9 @@ if !has('python')
 	finish
 endif
 
-let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'] }
+let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 
+                        \ 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'], 
+                        \ 'function'  : ['~Function', 'Enter Function: ', 'CloseFun'] }
 
 python << endpython
 import storage
@@ -18,7 +20,7 @@ matches = [i for i in st.modules.d if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
 vim.command("let l:res = %r" % completions)
 endpython
-return l:res
+    return l:res
 endfun
 
 fun! GetClass(pfx)
@@ -28,7 +30,17 @@ matches = [i for i in st.classes.d if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.classes.d[i][0]} for i in matches]
 vim.command("let l:res = %r" % completions)
 endpython
-return l:res
+    return l:res
+endfun
+
+fun! GetFun(pfx)
+python << endpython
+pfx = vim.eval("a:pfx")
+matches = [i for i in st.functs.d if i.startswith(pfx)]
+completions = [{'word' : i, 'menu' : st.functs.d[i][0]} for i in matches]
+vim.command("let l:res = %r" % completions)
+endpython
+    return l:res
 endfun
 
 fun! Completer(findstart, base, fn)
@@ -52,6 +64,10 @@ fun! CompleteClasses(findstart, base)
      return Completer(a:findstart, a:base, function('GetClass'))
 endfun
 
+fun! CompleteFuns(findstart, base)
+     return Completer(a:findstart, a:base, function('GetFun'))
+endfun
+
 fun! OpenBuf(type)
     let bp = s:bufdetails[a:type]
     exe "split " . bp[0]
@@ -62,12 +78,17 @@ fun! OpenBuf(type)
     call feedkeys("i")
     setlocal completeopt=longest,menu
     exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call ' . bp[2] .'()<cr>'
-    exe 'inoremap <silent> <tab> <c-x><c-u>'
+    inoremap <silent> <tab> <c-x><c-u>
 endfun
 
 function! OpenClass()
     call OpenBuf('class') 
     setlocal completefunc=CompleteClasses
+endfunction
+
+function! OpenFun()
+    call OpenBuf('function') 
+    setlocal completefunc=CompleteFuns
 endfunction
 
 function! OpenModule()
@@ -93,7 +114,22 @@ python << endpython
 if ':' in vim.current.buffer[0]:
     k = vim.current.buffer[0].split(':')[1].strip()
     if k in st.classes.d:
+        vim.command('iunmap <cr>')
+        vim.command('iunmap <tab>')
         (_, pth, line) = st.classes.d[k]
+        vim.command("bdelete!")	
+        vim.command("e %s" % pth)
+        #TODO: Check if moving to class name col is better
+        vim.current.window.cursor = (line, 0)
+endpython
+endfunction
+
+function! CloseFun()
+python << endpython
+if ':' in vim.current.buffer[0]:
+    k = vim.current.buffer[0].split(':')[1].strip()
+    if k in st.functs.d:
+        (_, pth, line) = st.functs.d[k]
         vim.command("bdelete!")	
         vim.command("e %s" % pth)
         #TODO: Check if moving to class name col is better
