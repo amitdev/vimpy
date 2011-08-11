@@ -1,6 +1,6 @@
+from __future__ import with_statement
 import os
 from collections import defaultdict
-#from __future__ import with_statement
 
 try:
     import cPickle as pickle
@@ -12,6 +12,7 @@ class DictWrapper(object):
     def __init__(self, d):
         self.d = d
         self.counter = {}
+        self.skeys = sorted(d.keys())
 
     def add(self, key, val):
         if key in self.d:

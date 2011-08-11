@@ -16,7 +16,7 @@ endpython
 fun! GetMatch(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
-matches = [i for i in st.modules.d if i.startswith(pfx)]
+matches = [i for i in st.modules.skeys if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
 vim.command("let l:res = %r" % completions)
 endpython
@@ -26,7 +26,7 @@ endfun
 fun! GetClass(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
-matches = [i for i in st.classes.d if i.startswith(pfx)]
+matches = [i for i in st.classes.skeys if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.classes.d[i][0]} for i in matches]
 vim.command("let l:res = %r" % completions)
 endpython
@@ -36,7 +36,7 @@ endfun
 fun! GetFun(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
-matches = [i for i in st.functs.d if i.startswith(pfx)]
+matches = [i for i in st.functs.skeys if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.functs.d[i][0]} for i in matches]
 vim.command("let l:res = %r" % completions)
 endpython

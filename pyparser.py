@@ -4,6 +4,10 @@ import os
 import storage
 
 st = None
+count = 0
+progress = "Processing "
+pfmt = "\b" * (len(progress)+6)
+errors = []
 
 class visitor(ast.NodeVisitor):
 
@@ -30,13 +34,17 @@ class visitor(ast.NodeVisitor):
         st.addfunction(node.name, module, self.path, node.lineno)
 
 def parse(filename, pth):
+    global count
     if st.ismodified(pth):
-        #print 'Processing ' + pth
+        count += 1
+        if count != 1:
+            sys.stdout.write(pfmt) 
+        sys.stdout.write("%s%06d" % (progress, count)) 
         f = file(pth)
         try:
             visitor().startModule(ast.parse(f.read(), filename), filename, pth)
         except SyntaxError as err:
-            print 'Cannot Parse %s because of %r' % (pth, err)
+            errors.append('Cannot Parse %s because of %r \n' % (pth, err))
         st.modified(pth)
 
 
@@ -54,7 +62,11 @@ def start(roots):
             processed.add(p)
             walk(p)
     st.close()
-    print 'Done'
+    print '\nDone'
+    if errors:
+        sys.stderr.write('Following modules could ne be indexed because of syntax errors: \n')
+        for error in errors:
+            sys.stderr.write(error)
 
 if __name__ == '__main__':
     st = storage.storage(sys.argv[2])
