@@ -3,6 +3,11 @@ if !has('python')
 	finish
 endif
 
+" Key Bindings
+nnoremap <leader>m :call OpenModule()
+nnoremap <leader>c :call OpenClass()
+nnoremap <leader>f :call OpenFun()
+
 let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 
                         \ 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'], 
                         \ 'function'  : ['~Function', 'Enter Function: ', 'CloseFun'] }
@@ -44,10 +49,11 @@ endpython
 endfun
 
 fun! Completer(findstart, base, fn)
+      echo a:findstart
 	  if a:findstart
 	    let line = getline('.')
 	    let start = col('.') - 1
-	    while start > 0 && line[start - 1] =~ '\a'
+	    while start > 0 && line[start - 1] =~ '[^ :]\+'
 	      let start -= 1
 	    endwhile
 	    return start

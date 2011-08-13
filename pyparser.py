@@ -5,8 +5,6 @@ import storage
 
 st = None
 count = 0
-progress = "Processing "
-pfmt = "\b" * (len(progress)+6)
 errors = []
 
 class visitor(ast.NodeVisitor):
@@ -38,8 +36,8 @@ def parse(filename, pth):
     if st.ismodified(pth):
         count += 1
         if count != 1:
-            sys.stdout.write(pfmt) 
-        sys.stdout.write("%s%06d" % (progress, count)) 
+            sys.stdout.write('\b\b\b\b\b\b') 
+        sys.stdout.write("%06d" % count) 
         f = file(pth)
         try:
             visitor().startModule(ast.parse(f.read(), filename), filename, pth)
@@ -54,9 +52,10 @@ def walk(folder):
             if name.endswith('.py'):
                 parse(name, os.path.join(root, name))
 
-def start(roots):
+def start(roots, exclude=[]):
     print 'Start Indexing'
-    processed = set()
+    sys.stdout.write ("Processing ")
+    processed = set(exclude)
     for p in roots:
         if os.path.isdir(p) and p not in processed:
             processed.add(p)
@@ -64,10 +63,15 @@ def start(roots):
     st.close()
     print '\nDone'
     if errors:
-        sys.stderr.write('Following modules could ne be indexed because of syntax errors: \n')
+        sys.stderr.write('%d modules could not be indexed because of syntax errors: \n' % len(errors))
         for error in errors:
             sys.stderr.write(error)
 
 if __name__ == '__main__':
-    st = storage.storage(sys.argv[2])
-    start([sys.argv[1]])
+    if len(sys.argv) < 3:
+        print 'Usage: python %s <result> <source folder> [<exclude folder>]' % sys.argv[0]
+    st = storage.storage(sys.argv[1])
+    exclude = []
+    if len(sys.argv) == 4:
+        exclude = [sys.argv[3]]
+    start([sys.argv[2]], exclude)
