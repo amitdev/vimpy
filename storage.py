@@ -1,6 +1,7 @@
 from __future__ import with_statement
 import os
 from collections import defaultdict
+import zipfile
 
 try:
     import cPickle as pickle
@@ -54,18 +55,31 @@ class storage(object):
         self.modules.add(name, path)
 
     def _init(self):
-        with open(self.filename) as f:
-            try:
+        tmpfile = self.filename+".tmp"
+        try:
+            zf = zipfile.ZipFile(self.filename, mode="r")
+            zf.extract(tmpfile)
+            with open(tmpfile, 'r') as f:
                 self.modules = DictWrapper(pickle.load(f))
+                print 'Loaded %d modules' % len(self.modules.d)
                 self.classes = DictWrapper(pickle.load(f))
                 self.functs = DictWrapper(pickle.load(f))
                 self.modifiedtime = pickle.load(f)
-            except EOFError:
-                print 'Error while reading %s' % self.filename                
+        except Exception,e:
+            print 'Error while reading %r' % e
+        finally:
+            zf.close()
     
     def close(self):
-        with open(self.filename, 'w') as f:
+        tmpfile = self.filename+".tmp"
+        with open(tmpfile, 'w') as f:
             pickle.dump(self.modules.d, f)
             pickle.dump(self.classes.d, f)
             pickle.dump(self.functs.d, f)
             pickle.dump(self.modifiedtime, f)  
+        try:
+            zf = zipfile.ZipFile(self.filename, mode="w", compression=zipfile.ZIP_DEFLATED)
+            zf.write(tmpfile, tmpfile)
+            os.remove(tmpfile)
+        finally:
+            zf.close()

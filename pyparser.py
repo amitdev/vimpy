@@ -70,6 +70,7 @@ def start(roots, exclude=[]):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print 'Usage: python %s <result> <source folder> [<exclude folder>]' % sys.argv[0]
+        exit(1)
     st = storage.storage(sys.argv[1])
     exclude = []
     if len(sys.argv) == 4:

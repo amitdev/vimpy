@@ -5,6 +5,7 @@ endif
 
 " Key Bindings
 nnoremap <leader>m :call OpenModule()
+nnoremap <leader>gm :call GotoModule()
 nnoremap <leader>c :call OpenClass()
 nnoremap <leader>f :call OpenFun()
 
@@ -15,6 +16,8 @@ let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'
 python << endpython
 import storage
 import vim
+import tok
+#import setup
 st = storage.storage('pyth')
 endpython
 
@@ -53,7 +56,7 @@ fun! Completer(findstart, base, fn)
 	  if a:findstart
 	    let line = getline('.')
 	    let start = col('.') - 1
-	    while start > 0 && line[start - 1] =~ '[^ :]\+'
+	    while start > 0 && line[start - 1] =~ '[^ :]'
 	      let start -= 1
 	    endwhile
 	    return start
@@ -143,4 +146,27 @@ if ':' in vim.current.buffer[0]:
 endpython
 	iunmap <cr>
 	iunmap <tab>
+endfunction
+
+function! GotoModule()
+python << endpython
+line = vim.current.line
+pos  = vim.current.window.cursor[1]
+word = tok.ImportVisitor(line, pos).result
+if word:
+    word = "%s%s" % (word, '.py')
+    matches = [i for i in st.modules.skeys if i.startswith(word)]
+    if len(matches) == 1:
+        pth = st.modules.d[word]
+        vim.command("e %s" % pth)
+    elif len(matches) > 1:
+        completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
+        vim.command("let l:res = %r" % completions)
+endpython
+if exists("l:res")
+    call feedkeys("i")
+    inoremap <silent> <esc> <c-e><c-o>:<cr>
+    call complete(0, l:res)
+    iunmap <esc>
+endif
 endfunction
