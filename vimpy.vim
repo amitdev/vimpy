@@ -17,7 +17,7 @@ python << endpython
 import storage
 import vim
 import tok
-#import setup
+import heapq,setup
 st = storage.storage('pyth')
 endpython
 
@@ -160,13 +160,12 @@ if word:
         pth = st.modules.d[word]
         vim.command("e %s" % pth)
     elif len(matches) > 1:
-        completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
-        vim.command("let l:res = %r" % completions)
+        #completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
+        vim.command("let l:res = '%s'" % word)
 endpython
 if exists("l:res")
-    call feedkeys("i")
-    inoremap <silent> <esc> <c-e><c-o>:<cr>
-    call complete(0, l:res)
-    iunmap <esc>
+    call OpenModule()
+    call feedkeys(l:res)
+    call feedkeys("\t")
 endif
 endfunction

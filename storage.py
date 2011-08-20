@@ -61,7 +61,6 @@ class storage(object):
             zf.extract(tmpfile)
             with open(tmpfile, 'r') as f:
                 self.modules = DictWrapper(pickle.load(f))
-                print 'Loaded %d modules' % len(self.modules.d)
                 self.classes = DictWrapper(pickle.load(f))
                 self.functs = DictWrapper(pickle.load(f))
                 self.modifiedtime = pickle.load(f)
