@@ -5,11 +5,11 @@ endif
 
 " Key Bindings
 nnoremap <leader>om :call OpenModule()
+nnoremap <leader>oc :call OpenClass()
+nnoremap <leader>of :call OpenFun()
 nnoremap <leader>gm :call GotoModule()
 nnoremap <leader>gc :call GotoClass()
 nnoremap <leader>gf :call GotoFun()
-nnoremap <leader>oc :call OpenClass()
-nnoremap <leader>of :call OpenFun()
 
 let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 
                         \ 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'], 
@@ -19,7 +19,6 @@ python << endpython
 import storage
 import vim
 import tok
-#import heapq,setup
 st = storage.storage('pyth')
 endpython
 
@@ -161,23 +160,60 @@ endpython
 return l:res
 endfunction
 
+python << endpython
+def open_file(match, path, get):
+    vim.command("unlet! l:res")
+    line = vim.current.line
+    pos  = vim.current.window.cursor[1]
+    word = tok.get_token(line, pos)
+    if word:
+        word = get(word)
+        matches = [i for i in match.skeys if i.startswith(word)]
+        if len(matches) == 1:
+            _, pth, line = path(word)
+            vim.command("e %s" % pth)
+            if line:
+                vim.current.window.cursor = (line, 0)
+        elif len(matches) > 1:
+            vim.command("let l:res = '%s'" % word)
+    else:
+        print 'No match!'
+endpython
+
 function! GotoModule()
 python << endpython
-line = vim.current.line
-pos  = vim.current.window.cursor[1]
-word = tok.get_token(line, pos)
-if word:
-    word = "%s%s" % (word, '.py')
-    matches = [i for i in st.modules.skeys if i.startswith(word)]
-    if len(matches) == 1:
-        pth = st.modules.d[word]
-        vim.command("e %s" % pth)
-    elif len(matches) > 1:
-        #completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
-        vim.command("let l:res = '%s'" % word)
+open_file(st.modules,
+          lambda p: (None, st.modules.d[p], None),
+          lambda w: "%s%s" % (w, '.py'))
 endpython
 if exists("l:res")
     call OpenModule()
+    call feedkeys(l:res)
+    call feedkeys("\t")
+endif
+endfunction
+
+function! GotoClass()
+python << endpython
+open_file(st.classes,
+          lambda p: st.classes.d[p],
+          lambda w: w)
+endpython
+if exists("l:res")
+    call OpenClass()
+    call feedkeys(l:res)
+    call feedkeys("\t")
+endif
+endfunction
+
+function! GotoFun()
+python << endpython
+open_file(st.functs,
+          lambda p: st.functs.d[p],
+          lambda w: w)
+endpython
+if exists("l:res")
+    call OpenFun()
     call feedkeys(l:res)
     call feedkeys("\t")
 endif
