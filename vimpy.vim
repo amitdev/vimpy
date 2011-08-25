@@ -1,19 +1,31 @@
+" Vim Plugin to make navigation across python files easy.
+"
+" Author: Amit Dev
+" Version: 0.1
+" License: This file is placed in the public domain.
+"
+
+if exists("g:loaded_vimpy")
+    finish
+endif
+let g:loaded_vimpy = 1
+
 if !has('python')
 	echo "Error: vimpy requires Vim compiled with python."
 	finish
 endif
 
 " Key Bindings
-nnoremap <leader>om :call OpenModule()
-nnoremap <leader>oc :call OpenClass()
-nnoremap <leader>of :call OpenFun()
-nnoremap <leader>gm :call GotoModule()
-nnoremap <leader>gc :call GotoClass()
-nnoremap <leader>gf :call GotoFun()
+nnoremap <leader>om :call <SID>OpenModule()
+nnoremap <leader>oc :call <SID>OpenClass()
+nnoremap <leader>of :call <SID>OpenFun()
+nnoremap <leader>gm :call <SID>GotoModule()
+nnoremap <leader>gc :call <SID>GotoClass()
+nnoremap <leader>gf :call <SID>GotoFun()
 
-let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 
-                        \ 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'], 
-                        \ 'function'  : ['~Function', 'Enter Function: ', 'CloseFun'] }
+let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', '<SID>CloseModule'], 
+                        \ 'class'  : ['~Class', 'Enter Class Name: ', '<SID>CloseClass'], 
+                        \ 'function'  : ['~Function', 'Enter Function: ', '<SID>CloseFun'] }
 
 python << endpython
 import storage
@@ -22,7 +34,7 @@ import tok
 st = storage.storage('pyth')
 endpython
 
-fun! GetMatch(pfx)
+fun! s:GetModule(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
 matches = [i for i in st.modules.skeys if i.startswith(pfx)]
@@ -32,7 +44,7 @@ endpython
     return l:res
 endfun
 
-fun! GetClass(pfx)
+fun! s:GetClass(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
 matches = [i for i in st.classes.skeys if i.startswith(pfx)]
@@ -42,7 +54,7 @@ endpython
     return l:res
 endfun
 
-fun! GetFun(pfx)
+fun! s:GetFun(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
 matches = [i for i in st.functs.skeys if i.startswith(pfx)]
@@ -52,7 +64,7 @@ endpython
     return l:res
 endfun
 
-fun! Completer(findstart, base, fn)
+fun! s:Completer(findstart, base, fn)
       echo a:findstart
 	  if a:findstart
 	    let line = getline('.')
@@ -66,19 +78,19 @@ fun! Completer(findstart, base, fn)
 	  endif
 endfun
 
-fun! CompleteModules(findstart, base)
-     return Completer(a:findstart, a:base, function('GetMatch'))
+fun! VimpyCompleteModules(findstart, base)
+     return s:Completer(a:findstart, a:base, function('s:GetModule'))
 endfun
 
-fun! CompleteClasses(findstart, base)
-     return Completer(a:findstart, a:base, function('GetClass'))
+fun! VimpyCompleteClasses(findstart, base)
+     return s:Completer(a:findstart, a:base, function('s:GetClass'))
 endfun
 
-fun! CompleteFuns(findstart, base)
-     return Completer(a:findstart, a:base, function('GetFun'))
+fun! VimpyCompleteFuns(findstart, base)
+     return s:Completer(a:findstart, a:base, function('s:GetFun'))
 endfun
 
-fun! OpenBuf(type)
+fun! s:OpenBuf(type)
     let bp = s:bufdetails[a:type]
     exe "split " . bp[0]
     setlocal buftype=nofile
@@ -87,26 +99,26 @@ fun! OpenBuf(type)
     exe "normal i" . bp[1]
     call feedkeys("i")
     setlocal completeopt=longest,menu
-    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseBuf(function("' . bp[2] .'"))<cr>'
+    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call <SID>CloseBuf(function("' . bp[2] .'"))<cr>'
     inoremap <silent> <tab> <c-x><c-u>
 endfun
 
-function! OpenClass()
-    call OpenBuf('class') 
-    setlocal completefunc=CompleteClasses
+function! s:OpenClass()
+    call s:OpenBuf('class') 
+    setlocal completefunc=VimpyCompleteClasses
 endfunction
 
-function! OpenFun()
-    call OpenBuf('function') 
-    setlocal completefunc=CompleteFuns
+function! s:OpenFun()
+    call s:OpenBuf('function') 
+    setlocal completefunc=VimpyCompleteFuns
 endfunction
 
-function! OpenModule()
-    call OpenBuf('module') 
-    setlocal completefunc=CompleteModules
+function! s:OpenModule()
+    call s:OpenBuf('module') 
+    setlocal completefunc=VimpyCompleteModules
 endfunction
 
-function! CloseBuf(fn)
+function! s:CloseBuf(fn)
     let s = getline(1)
     let ind = stridx(s, ':')
     if ind != -1
@@ -125,7 +137,7 @@ function! CloseBuf(fn)
     iunmap <tab>
 endfunction
 
-function! CloseModule(name)
+function! s:CloseModule(name)
 let l:res = ''
 python << endpython
 k = vim.eval("a:name").strip()
@@ -136,7 +148,7 @@ endpython
 return l:res
 endfunction
 
-function! CloseClass(name)
+function! s:CloseClass(name)
 let l:res = ''
 python << endpython
 k = vim.eval("a:name").strip()
@@ -148,7 +160,7 @@ endpython
 return l:res
 endfunction
 
-function! CloseFun(name)
+function! s:CloseFun(name)
 let l:res = ''
 python << endpython
 k = vim.eval("a:name").strip()
@@ -176,44 +188,46 @@ def open_file(match, path, get):
                 vim.current.window.cursor = (line, 0)
         elif len(matches) > 1:
             vim.command("let l:res = '%s'" % word)
+        else:
+            print 'No match!'
     else:
         print 'No match!'
 endpython
 
-function! GotoModule()
+function! s:GotoModule()
 python << endpython
 open_file(st.modules,
           lambda p: (None, st.modules.d[p], None),
           lambda w: "%s%s" % (w, '.py'))
 endpython
 if exists("l:res")
-    call OpenModule()
+    call s:OpenModule()
     call feedkeys(l:res)
     call feedkeys("\t")
 endif
 endfunction
 
-function! GotoClass()
+function! s:GotoClass()
 python << endpython
 open_file(st.classes,
           lambda p: st.classes.d[p],
           lambda w: w)
 endpython
 if exists("l:res")
-    call OpenClass()
+    call s:OpenClass()
     call feedkeys(l:res)
     call feedkeys("\t")
 endif
 endfunction
 
-function! GotoFun()
+function! s:GotoFun()
 python << endpython
 open_file(st.functs,
           lambda p: st.functs.d[p],
           lambda w: w)
 endpython
 if exists("l:res")
-    call OpenFun()
+    call s:OpenFun()
     call feedkeys(l:res)
     call feedkeys("\t")
 endif
