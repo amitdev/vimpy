@@ -32,9 +32,7 @@ class storage(object):
         self.classes = DictWrapper({})
         self.functs  = DictWrapper({})
         self.modifiedtime = {}
-        self.filename = filename        
-        if os.path.exists(self.filename):
-            self._init()
+        self.init(filename)
         self.changed = False
     
     def ismodified(self, path):
@@ -54,7 +52,10 @@ class storage(object):
     def addmodule(self, name, path):
         self.modules.add(name, path)
 
-    def _init(self):
+    def init(self, filename):
+        self.filename = filename        
+        if not os.path.exists(self.filename):
+            return
         tmpfile = self.filename+".tmp"
         try:
             zf = zipfile.ZipFile(self.filename, mode="r")

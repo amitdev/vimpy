@@ -31,12 +31,26 @@ python << endpython
 import storage
 import vim
 import tok
-st = storage.storage('pyth')
+import os
+
+def _set_storage(path):
+    if os.path.exists(path):
+        st.init(path)
+        print 'Loaded Project with %d modules' % len(st.modules.skeys)
+    else:
+        print 'Invalid Project File'
+
+st = storage.storage('')
 endpython
+
+if !exists(":PyProj")
+    command -nargs=1  PyProj :python _set_storage(<q-args>)
+endif
 
 fun! s:GetModule(pfx)
 python << endpython
 pfx = vim.eval("a:pfx")
+#print 'Matching %s in %d modules' % (pfx, len(st.modules.skeys))
 matches = [i for i in st.modules.skeys if i.startswith(pfx)]
 completions = [{'word' : i, 'menu' : st.modules.d[i]} for i in matches]
 vim.command("let l:res = %r" % completions)
