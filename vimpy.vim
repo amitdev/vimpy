@@ -4,10 +4,12 @@ if !has('python')
 endif
 
 " Key Bindings
-nnoremap <leader>m :call OpenModule()
+nnoremap <leader>om :call OpenModule()
 nnoremap <leader>gm :call GotoModule()
-nnoremap <leader>c :call OpenClass()
-nnoremap <leader>f :call OpenFun()
+nnoremap <leader>gc :call GotoClass()
+nnoremap <leader>gf :call GotoFun()
+nnoremap <leader>oc :call OpenClass()
+nnoremap <leader>of :call OpenFun()
 
 let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', 'CloseModule'], 
                         \ 'class'  : ['~Class', 'Enter Class Name: ', 'CloseClass'], 
@@ -17,7 +19,7 @@ python << endpython
 import storage
 import vim
 import tok
-import heapq,setup
+#import heapq,setup
 st = storage.storage('pyth')
 endpython
 
@@ -86,7 +88,7 @@ fun! OpenBuf(type)
     exe "normal i" . bp[1]
     call feedkeys("i")
     setlocal completeopt=longest,menu
-    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call ' . bp[2] .'()<cr>'
+    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call CloseBuf(function("' . bp[2] .'"))<cr>'
     inoremap <silent> <tab> <c-x><c-u>
 endfun
 
@@ -105,54 +107,65 @@ function! OpenModule()
     setlocal completefunc=CompleteModules
 endfunction
 
-function! CloseModule()
-python << endpython
-if ':' in vim.current.buffer[0]:
-    k = vim.current.buffer[0].split(':')[1].strip()
-    if k in st.modules.d:
-        pth = st.modules.d[k]
-        vim.command("bdelete!")	
-        vim.command("e %s" % pth)
-endpython
-	iunmap <cr>
-	iunmap <tab>
+function! CloseBuf(fn)
+    let s = getline(1)
+    let ind = stridx(s, ':')
+    if ind != -1
+        let name = strpart(s, ind+1)
+        let pos = a:fn(name)
+        if pos != ''
+            exe "bdelete"
+            let ind = strridx(pos, ':')
+            let path = strpart(pos, 0, ind)
+            let line = strpart(pos, ind+1)
+            exe "e " . path
+            call cursor(line, 0)
+        endif
+    endif
+    iunmap <cr>
+    iunmap <tab>
 endfunction
 
-function! CloseClass()
+function! CloseModule(name)
+let l:res = ''
 python << endpython
-if ':' in vim.current.buffer[0]:
-    k = vim.current.buffer[0].split(':')[1].strip()
-    if k in st.classes.d:
-        vim.command('iunmap <cr>')
-        vim.command('iunmap <tab>')
-        (_, pth, line) = st.classes.d[k]
-        vim.command("bdelete!")	
-        vim.command("e %s" % pth)
-        #TODO: Check if moving to class name col is better
-        vim.current.window.cursor = (line, 0)
+k = vim.eval("a:name").strip()
+if k in st.modules.d:
+    pth = st.modules.d[k]
+    vim.command("let l:res = '%s:1'" % pth)
 endpython
+return l:res
 endfunction
 
-function! CloseFun()
+function! CloseClass(name)
+let l:res = ''
 python << endpython
-if ':' in vim.current.buffer[0]:
-    k = vim.current.buffer[0].split(':')[1].strip()
-    if k in st.functs.d:
-        (_, pth, line) = st.functs.d[k]
-        vim.command("bdelete!")	
-        vim.command("e %s" % pth)
-        #TODO: Check if moving to class name col is better
-        vim.current.window.cursor = (line, 0)
+k = vim.eval("a:name").strip()
+if k in st.classes.d:
+    (_, pth, line) = st.classes.d[k]
+    #TODO: Check if moving to class name col is better
+    vim.command("let l:res = '%s:%d'" % (pth, line))
 endpython
-	iunmap <cr>
-	iunmap <tab>
+return l:res
+endfunction
+
+function! CloseFun(name)
+let l:res = ''
+python << endpython
+k = vim.eval("a:name").strip()
+if k in st.functs.d:
+    (_, pth, line) = st.functs.d[k]
+    #TODO: Check if moving to class name col is better
+    vim.command("let l:res = '%s:%d'" % (pth, line))
+endpython
+return l:res
 endfunction
 
 function! GotoModule()
 python << endpython
 line = vim.current.line
 pos  = vim.current.window.cursor[1]
-word = tok.ImportVisitor(line, pos).result
+word = tok.get_token(line, pos)
 if word:
     word = "%s%s" % (word, '.py')
     matches = [i for i in st.modules.skeys if i.startswith(word)]

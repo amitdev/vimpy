@@ -1,6 +1,7 @@
 import ast
 import StringIO
 import tokenize
+import token
 
 class ImportVisitor(ast.NodeVisitor):
         def __init__(self, line, pos):
@@ -26,3 +27,9 @@ class ImportVisitor(ast.NodeVisitor):
                             self.pos < tup[3][1] and
                             tup[1] not in ignore):
                                 self.result = tup[1].strip()
+
+def get_token(line, pos):
+        for tup in tokenize.generate_tokens(StringIO.StringIO(line).readline):
+                if tup[0] == token.NAME and pos >= tup[2][1] and pos < tup[3][1]:
+                    return tup[1].strip()
+        return ''
