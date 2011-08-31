@@ -7,6 +7,7 @@ import storage
 st = None
 count = 0
 errors = []
+DEBUG = False
 
 class visitor(ast.NodeVisitor):
 
@@ -50,9 +51,9 @@ def parse(filename, pth):
         f = file(pth)
         try:
             visitor().startModule(ast.parse(f.read(), filename), filename, pth)
+            st.modified(pth)
         except SyntaxError as err:
             errors.append('Cannot Parse %s because of %r \n' % (pth, err))
-        st.modified(pth)
 
 
 def walk(folder, processed):
@@ -74,18 +75,23 @@ def start(roots, exclude=[]):
     st.close()
     print ' Done.\nTotal %d modules which has %d classes and %d functions.' % st.counts()
     if errors:
-        sys.stderr.write('%d modules could not be indexed because of syntax errors: \n' % len(errors))
-        for error in errors:
-            sys.stderr.write(error)
+        sys.stderr.write('%d modules could not be indexed because of syntax errors.\n' % len(errors))
+        if DEBUG:
+            for error in errors:
+                sys.stderr.write(error)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print 'Usage: python %s <proj-file> <source folders> [<exclude folders>]' % sys.argv[0]
+        print 'Usage: python %s <proj-file> <source folders> [<exclude folders>] [--debug]' % sys.argv[0]
         print '       <proj-file> is the result which can be used in vimpy'
-        print '       <source folders> and <exclude folders> can be comma separated list of folders as well'
+        print '       <source folders> and <exclude folders> can be comma separated list of folders as well [Optional]'
+        print '       --debug will show errors if any during indexing. [Optional]'
         exit(1)
     st = storage.storage(sys.argv[1])
     exclude = []
-    if len(sys.argv) == 4:
-        exclude = sys.argv[3].split(',')        
+    if len(sys.argv) >= 4:
+        if not sys.argv[3] == '--debug':
+            exclude = sys.argv[3].split(',')
+
+    DEBUG = sys.argv[-1] == '--debug'
     start(sys.argv[2].split(','), exclude)
