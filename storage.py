@@ -2,6 +2,7 @@ from __future__ import with_statement
 import os
 from collections import defaultdict
 import zipfile
+import tempfile
 
 try:
     import cPickle as pickle
@@ -64,11 +65,13 @@ class storage(object):
         self.filename = filename        
         if not os.path.exists(self.filename):
             return
+        tmpdir = tempfile.mkdtemp()
         tmpfile = self.filename+".tmp"
+        tmppath = os.path.join(tmpdir, tmpfile)
         try:
             zf = zipfile.ZipFile(self.filename, mode="r")
-            zf.extract(tmpfile)
-            with open(tmpfile, 'r') as f:
+            zf.extract(tmpfile, tmpdir)
+            with open(tmppath, 'r') as f:
                 self.reset()
                 self.modules = DictWrapper(pickle.load(f))
                 self.classes = DictWrapper(pickle.load(f))
@@ -80,13 +83,16 @@ class storage(object):
             self.reset()
         finally:
             zf.close()
-            os.remove(tmpfile)
+            os.remove(tmppath)
+            os.removedirs(tmpdir)
 
     def close(self):
         if not self.modules.d:
             return
+        tmpdir = tempfile.mkdtemp()
         tmpfile = self.filename+".tmp"
-        with open(tmpfile, 'w') as f:
+        tmppath = os.path.join(tmpdir, tmpfile)
+        with open(tmppath, 'w') as f:
             pickle.dump(self.modules.d, f)
             pickle.dump(self.classes.d, f)
             pickle.dump(self.functs.d, f)
@@ -94,10 +100,11 @@ class storage(object):
             pickle.dump(self.modifiedtime, f)  
         try:
             zf = zipfile.ZipFile(self.filename, mode="w", compression=zipfile.ZIP_DEFLATED)
-            zf.write(tmpfile, tmpfile)
+            zf.write(tmppath, tmpfile)
         finally:
             zf.close()
-            os.remove(tmpfile)
-
+            os.remove(tmppath)
+            os.removedirs(tmpdir)
+    
     def counts(self):
         return len(self.modules.d), len(self.classes.d), len(self.functs.d)
