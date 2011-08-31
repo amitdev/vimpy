@@ -16,12 +16,12 @@ if !has('python')
 endif
 
 " Key Bindings
-nnoremap <leader>om :call <SID>OpenModule()
-nnoremap <leader>oc :call <SID>OpenClass()
-nnoremap <leader>of :call <SID>OpenFun()
-nnoremap <leader>gm :call <SID>GotoModule()
-nnoremap <leader>gc :call <SID>GotoClass()
-nnoremap <leader>gf :call <SID>GotoFun()
+nnoremap <leader>om :call <SID>OpenModule()<CR>
+nnoremap <leader>oc :call <SID>OpenClass()<CR>
+nnoremap <leader>of :call <SID>OpenFun()<CR>
+nnoremap <leader>gm :call <SID>GotoModule()<CR>
+nnoremap <leader>gc :call <SID>GotoClass()<CR>
+nnoremap <leader>gf :call <SID>GotoFun()<CR>
 
 " Open new files in a split or buffer?
 let s:EditCmd = "e"
@@ -114,10 +114,10 @@ fun! s:OpenBuf(type)
     setlocal bufhidden=hide
     setlocal noswapfile
     exe "normal i" . bp[1]
-    call feedkeys("i")
+    call feedkeys("C")
     setlocal completeopt=longest,menu
-    exe 'inoremap <silent> <cr> <cr><c-\><c-n>:call <SID>CloseBuf(function("' . bp[2] .'"))<cr>'
-    inoremap <silent> <tab> <c-x><c-u>
+    exe 'inoremap <buffer> <silent> <cr> <cr><c-\><c-n>:call <SID>CloseBuf(function("' . bp[2] .'"))<cr>'
+    inoremap <buffer> <silent> <tab> <c-x><c-u>
 endfun
 
 function! s:OpenClass()
@@ -149,9 +149,9 @@ function! s:CloseBuf(fn)
             exe s:EditCmd . " " . path
             call cursor(line, 0)
         endif
+    else
+        exe "bdelete"
     endif
-    iunmap <cr>
-    iunmap <tab>
 endfunction
 
 function! s:CloseModule(name)
@@ -197,7 +197,9 @@ def open_file(match, path, get):
     word = tok.get_token(line, pos)
     if word:
         word = get(word)
+        lw = len(word)
         matches = [i for i in match.skeys if i.startswith(word)]
+        matches = [i for i in matches if len(i) == lw or i[lw] == ' ']
         if len(matches) == 1:
             _, pth, line = path(word)
             vim.command("e %s" % pth)

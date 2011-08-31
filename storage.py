@@ -82,9 +82,12 @@ class storage(object):
             print 'Error while reading %r' % e
             self.reset()
         finally:
-            zf.close()
-            os.remove(tmppath)
-            os.removedirs(tmpdir)
+            try:
+                zf.close()
+                os.remove(tmppath)
+                os.removedirs(tmpdir)
+            except Exception:
+                pass
 
     def close(self):
         if not self.modules.d:

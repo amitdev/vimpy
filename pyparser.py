@@ -24,6 +24,11 @@ class visitor(ast.NodeVisitor):
         self.klass = node.name
         #print 'Adding class %r in %s' % (node, self.module)        
         st.addclass(node.name, self.module, self.path, node.lineno)
+        #self.addSub(node)
+        ast.NodeVisitor.generic_visit(self, node)
+        self.klass = None
+
+    def addsub(self, node):
         for base in node.bases:
             if isinstance(base, _ast.Name):
                 st.addsub(node.name, base.id)
@@ -32,8 +37,6 @@ class visitor(ast.NodeVisitor):
             else:
                 # The superclass is an expresion. Atleast log it later.
                 pass
-        ast.NodeVisitor.generic_visit(self, node)
-        self.klass = None
 
     def visit_FunctionDef(self, node):
         module = self.module
