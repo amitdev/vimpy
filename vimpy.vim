@@ -23,6 +23,9 @@ nnoremap <leader>gm :call <SID>GotoModule()
 nnoremap <leader>gc :call <SID>GotoClass()
 nnoremap <leader>gf :call <SID>GotoFun()
 
+" Open new files in a split or buffer?
+let s:EditCmd = "e"
+
 let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', '<SID>CloseModule'], 
                         \ 'class'  : ['~Class', 'Enter Class Name: ', '<SID>CloseClass'], 
                         \ 'function'  : ['~Function', 'Enter Function: ', '<SID>CloseFun'] }
@@ -44,7 +47,7 @@ st = storage.storage('')
 endpython
 
 if !exists(":PyProj")
-    command -nargs=1  PyProj :python _set_storage(<q-args>)
+    command -nargs=1 -complete=file PyProj :python _set_storage(<q-args>)
 endif
 
 fun! s:GetModule(pfx)
@@ -143,7 +146,7 @@ function! s:CloseBuf(fn)
             let ind = strridx(pos, ':')
             let path = strpart(pos, 0, ind)
             let line = strpart(pos, ind+1)
-            exe "e " . path
+            exe s:EditCmd . " " . path
             call cursor(line, 0)
         endif
     endif
