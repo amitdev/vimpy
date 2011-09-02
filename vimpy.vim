@@ -31,14 +31,14 @@ let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', '<SID>CloseMo
                         \ 'function'  : ['~Function', 'Enter Function: ', '<SID>CloseFun'] }
 
 python << endpython
-import storage
 import vim
-import tok
 import os
 import sys
 
 scriptdir = os.path.join(os.path.dirname(vim.eval('expand("<sfile>")')), 'vimpy')
 sys.path.insert(0, scriptdir)
+import storage
+import tok
 
 def _set_storage(path):
     if os.path.exists(path):

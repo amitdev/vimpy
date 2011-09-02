@@ -3,6 +3,7 @@ import os
 from collections import defaultdict
 import zipfile
 import tempfile
+import cStringIO
 
 try:
     import cPickle as pickle
@@ -28,26 +29,26 @@ class DictWrapper(object):
         return key
 
 class storage(object):
-    
+
     def __init__(self, filename):
         self.reset()
         self.init(filename)
         self.changed = False
-    
+
     def ismodified(self, path):
         mt = os.path.getmtime(path)
         return path not in self.modifiedtime or mt - self.modifiedtime[path] > 1e-6
-    
+
     def modified(self, path):
         self.modifiedtime[path] = os.path.getmtime(path)
-        self.changed = True        
+        self.changed = True
 
     def addfunction(self, name, module, path, line):
         self.functs.add(name, (module, path, line))
 
     def addclass(self, name, module, path, line):
         return self.classes.add(name, (module, path, line))
-        
+
     def addmodule(self, name, path):
         self.modules.add(name, path)
 
@@ -58,56 +59,47 @@ class storage(object):
         self.modules = DictWrapper({})
         self.classes = DictWrapper({})
         self.functs  = DictWrapper({})
-        self.sub     = defaultdict(set)
+        #self.sub     = defaultdict(set)
         self.modifiedtime = {}
 
     def init(self, filename):
-        self.filename = filename        
+        self.filename = filename
         if not os.path.exists(self.filename):
             return
-        tmpdir = tempfile.mkdtemp()
-        tmpfile = self.filename+".tmp"
-        tmppath = os.path.join(tmpdir, tmpfile)
         try:
+            tmpfile = os.path.basename(self.filename)+".tmp"
             zf = zipfile.ZipFile(self.filename, mode="r")
-            zf.extract(tmpfile, tmpdir)
-            with open(tmppath, 'r') as f:
-                self.reset()
-                self.modules = DictWrapper(pickle.load(f))
-                self.classes = DictWrapper(pickle.load(f))
-                self.functs  = DictWrapper(pickle.load(f))
-                self.sub     = pickle.load(f)
-                self.modifiedtime = pickle.load(f)
+            f = cStringIO.StringIO(zf.read(tmpfile))
+            self.reset()
+            self.modules = DictWrapper(pickle.load(f))
+            self.classes = DictWrapper(pickle.load(f))
+            self.functs  = DictWrapper(pickle.load(f))
+            #self.sub     = pickle.load(f)
+            self.modifiedtime = pickle.load(f)
         except Exception,e:
             print 'Error while reading %r' % e
             self.reset()
         finally:
             try:
                 zf.close()
-                os.remove(tmppath)
-                os.removedirs(tmpdir)
             except Exception:
                 pass
 
     def close(self):
         if not self.modules.d:
             return
-        tmpdir = tempfile.mkdtemp()
-        tmpfile = self.filename+".tmp"
-        tmppath = os.path.join(tmpdir, tmpfile)
-        with open(tmppath, 'w') as f:
+        tmpfile = os.path.basename(self.filename)+".tmp"
+        try:
+            zf = zipfile.ZipFile(self.filename, mode="w", compression=zipfile.ZIP_DEFLATED)
+            f = cStringIO.StringIO()
             pickle.dump(self.modules.d, f)
             pickle.dump(self.classes.d, f)
             pickle.dump(self.functs.d, f)
-            pickle.dump(self.sub, f)
-            pickle.dump(self.modifiedtime, f)  
-        try:
-            zf = zipfile.ZipFile(self.filename, mode="w", compression=zipfile.ZIP_DEFLATED)
-            zf.write(tmppath, tmpfile)
+            #pickle.dump(self.sub, f)
+            pickle.dump(self.modifiedtime, f)
+            zf.writestr(tmpfile, f.getvalue())
         finally:
             zf.close()
-            os.remove(tmppath)
-            os.removedirs(tmpdir)
-    
+
     def counts(self):
         return len(self.modules.d), len(self.classes.d), len(self.functs.d)

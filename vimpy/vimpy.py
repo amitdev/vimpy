@@ -6,6 +6,7 @@ import storage
 
 st = None
 count = 0
+modcount = 0
 errors = []
 DEBUG = False
 
@@ -45,23 +46,31 @@ class visitor(ast.NodeVisitor):
         st.addfunction(node.name, module, self.path, node.lineno)
 
 def parse(filename, pth):
-    global count
+    global count, modcount
+    count += 1
+    if count != 1:
+        sys.stdout.write('\b\b\b\b\b\b') 
+    sys.stdout.write("%06d" % count) 
     if st.ismodified(pth):
-        count += 1
-        if count != 1:
-            sys.stdout.write('\b\b\b\b\b\b') 
-        sys.stdout.write("%06d" % count) 
         f = file(pth)
         try:
             visitor().startModule(ast.parse(f.read(), filename), filename, pth)
             st.modified(pth)
+            modcount += 1
         except SyntaxError as err:
             errors.append('Cannot Parse %s because of %r \n' % (pth, err))
 
+def excluded(folder, exclude):
+    fs = folder.split(os.path.sep)
+    for exs in exclude:
+        if len(exs) <= len(fs) and all((fs[i]==exs[i] for i in xrange(len(exs)))):
+            return True
+    return False
 
-def walk(folder, processed):
+def walk(folder, exclude):
+    processed = set()
     for root, dirs, files in os.walk(folder, topdown=False):
-        if root in processed:
+        if root in processed or excluded(root, exclude):
             continue
         processed.add(root)
         for name in files:
@@ -69,14 +78,14 @@ def walk(folder, processed):
                 parse(name, os.path.join(root, name))
 
 def start(roots, exclude=[]):    
-    roots = [p.strip() for p in roots]
-    exclude = [p.strip() for p in exclude]
+    roots = [os.path.abspath(p.strip()) for p in roots]
+    exclude = [os.path.abspath(p.strip()).split(os.path.sep) for p in exclude]
     sys.stdout.write ("Indexing ")
-    processed = set(exclude)
     for p in roots:
-        walk(p, processed)
+        walk(p, exclude)
     st.close()
-    print ' Done.\nTotal %d modules which has %d classes and %d functions.' % st.counts()
+    print ' Done. Processed %d Modules, %d modules changed.' % (count, modcount)
+    print 'Total %d modules which has %d classes and %d functions.' % st.counts()
     if errors:
         sys.stderr.write('%d modules could not be indexed because of syntax errors.\n' % len(errors))
         if DEBUG:
