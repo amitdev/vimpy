@@ -57,7 +57,7 @@ def parse(filename, pth):
             visitor().startModule(ast.parse(f.read(), filename), filename, pth)
             st.modified(pth)
             modcount += 1
-        except SyntaxError as err:
+        except Exception, err:
             errors.append('Cannot Parse %s because of %r \n' % (pth, err))
 
 def excluded(folder, exclude):
@@ -87,7 +87,7 @@ def start(roots, exclude=[]):
     print ' Done. Processed %d Modules, %d modules changed.' % (count, modcount)
     print 'Total %d modules which has %d classes and %d functions.' % st.counts()
     if errors:
-        sys.stderr.write('%d modules could not be indexed because of syntax errors.\n' % len(errors))
+        sys.stderr.write('%d modules could not be indexed because of syntax errors. Use --debug option to see details.\n' % len(errors))
         if DEBUG:
             for error in errors:
                 sys.stderr.write(error)

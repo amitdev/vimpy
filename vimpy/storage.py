@@ -1,8 +1,6 @@
 from __future__ import with_statement
 import os
-from collections import defaultdict
 import zipfile
-import tempfile
 import cStringIO
 
 try:
