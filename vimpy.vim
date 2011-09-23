@@ -35,7 +35,9 @@ import vim
 import os
 import sys
 
-scriptdir = os.path.join(os.path.dirname(vim.eval('expand("<sfile>")')), 'vimpy')
+scriptdir = os.path.dirname(vim.eval('expand("<sfile>")'))
+if not scriptdir.endswith('vimpy'):
+    scriptdir = os.path.join(scriptdir, 'vimpy')
 sys.path.insert(0, scriptdir)
 import storage
 import tok
