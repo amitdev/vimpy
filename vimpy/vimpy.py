@@ -45,20 +45,39 @@ class visitor(ast.NodeVisitor):
             module = '%s :: %s' % (self.module, self.klass)
         st.addfunction(node.name, module, self.path, node.lineno)
 
-def parse(filename, pth):
+def parsepyx(lines, filename, pth):
+    """ Heuristic based simple pyrex/cython file parser. """
+    for n, line in enumerate(lines):
+        l = line.strip()
+        try:
+            if (l.startswith('class') or l.startswith('cdef class')) and l[-1] == ':':       
+                end = l.find('(')
+                st.addclass(l[l.rfind(' ',0, end)+1:end], filename, pth, n+1)
+            elif l.startswith('def') or l.startswith('cdef'):
+                    fn = l.split('(')
+                    if fn[-1][-1] == ':':
+                        st.addfunction(fn[0].split(' ')[-1], filename, pth, n+1)
+        except Exception:
+            pass
+
+def parse(filename, pth, ispython=True):
     global count, modcount
     count += 1
     if count != 1:
         sys.stdout.write('\b\b\b\b\b\b') 
-    sys.stdout.write("%06d" % count) 
+    sys.stdout.write("%06d" % count)
     if st.ismodified(pth):
-        f = file(pth)
-        try:
-            visitor().startModule(ast.parse(f.read(), filename), filename, pth)
-            st.modified(pth)
-            modcount += 1
-        except Exception, err:
-            errors.append('Cannot Parse %s because of %r \n' % (pth, err))
+        if ispython:
+            try:
+                visitor().startModule(ast.parse(file(pth).read(), filename), filename, pth)
+            except Exception, err:
+                errors.append('Cannot Parse %s because of %r \n' % (pth, err))
+        else:
+            st.addmodule(filename, pth)
+            f = open(pth)
+            parsepyx(f.readlines(), filename, pth)
+        st.modified(pth)
+        modcount += 1
 
 def excluded(folder, exclude):
     fs = folder.split(os.path.sep)
@@ -76,6 +95,8 @@ def walk(folder, exclude):
         for name in files:
             if name.endswith('.py'):
                 parse(name, os.path.join(root, name))
+            elif name.endswith('.pyx'):
+                parse(name, os.path.join(root, name), False)
 
 def start(roots, exclude=[]):    
     roots = [os.path.abspath(p.strip()) for p in roots]
