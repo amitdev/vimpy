@@ -19,9 +19,7 @@ Usage is similar to how ctags/ptags work in Vim. Basically there are 2 steps:
    This is a one time operation. The index will be automatically updated if you edit the files using vim, otherwise this can be rerun and only the changed files will be updated.
 
 2. Load the index file in Vim. This can be done using ':VimpyLoad <file-name>' inside Vim. This can automated by adding in the vimrc.
-
 Now it is ready to use! Following commands (the Keybindings can be changed in vimpy.vim) can be used to navigate to any desired module:
-    All of them has auto completion support, so you just need to type in few characters and press <tab>.
 
     - <leader> om : Open Module. Go to a module with a given name. 
     - <leader> oc : Open Class. Go to a class with a given name. 
@@ -30,6 +28,7 @@ Now it is ready to use! Following commands (the Keybindings can be changed in vi
     - <leader> gc : Goto Class given by word under cursor. 
     - <leader> gf : Goto Function given by word under cursor. 
 
+All of them has auto completion support, so you just need to type in few characters and press <tab>.
 [<leader> is typically the '\' character, but you can change it to anything (One good option is ',')].
 
 TODO
