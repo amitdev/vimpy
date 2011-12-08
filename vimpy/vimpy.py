@@ -5,11 +5,17 @@ import storage
 import compiler
 from compiler import visitor as ast
 
+try:
+    import vim
+except:
+    pass
+
 st = None
 count = 0
 modcount = 0
 errors = []
 DEBUG = False
+from_vim = True
 
 class visitor(ast.ASTVisitor):
 
@@ -91,9 +97,12 @@ def parse(filename, pth):
         return
     global count, modcount
     count += 1
-    if count != 1:
-        sys.stdout.write('\b\b\b\b\b\b')
-    sys.stdout.write("%06d" % count)
+    if not from_vim:
+        if count != 1:
+            sys.stdout.write('\b\b\b\b\b\b')
+        sys.stdout.write("%06d" % count)
+    else:
+        vim.command('redraw | echo "Indexing %06d"' % count)
     modcount += parsefile(pth)
 
 def excluded(folder, exclude):
@@ -112,15 +121,24 @@ def walk(folder, exclude):
         for name in files:
             parse(name, os.path.join(root, name))
 
-def start(roots, exclude=[]):
+def start(prj, roots, exclude=""):
+    global st, from_vim
+    st = storage.storage(prj)
+    roots = roots.split(',')
+    if exclude:
+        exclude = exclude.split(',')
+    else:
+        exclude = []
     roots = [os.path.realpath(p.strip()) for p in roots]
     exclude = [os.path.realpath(p.strip()).split(os.path.sep) for p in exclude]
-    sys.stdout.write ("Indexing ")
+    if not from_vim:
+        sys.stdout.write ("Indexing ")
+    else:
+        vim.command('redraw | echo "Indexing "')
     for p in roots:
         walk(p, exclude)
     st.close()
     print ' Done. Processed %d Modules, %d modules changed.' % (count, modcount)
-    print 'Total %d modules which has %d classes and %d functions.' % st.counts()
     if errors:
         sys.stderr.write('%d modules could not be indexed because of syntax errors. Use --debug option to see details.\n' % len(errors))
         if DEBUG:
@@ -134,11 +152,11 @@ if __name__ == '__main__':
         print '       <source folders> and <exclude folders> can be comma separated list of folders as well [Optional]'
         print '       --debug will show errors if any during indexing. [Optional]'
         exit(1)
-    st = storage.storage(sys.argv[1])
-    exclude = []
+
+    from_vim = False
     if len(sys.argv) >= 4:
         if not sys.argv[3] == '--debug':
-            exclude = sys.argv[3].split(',')
+            exclude = sys.argv[3]
 
     DEBUG = sys.argv[-1] == '--debug'
-    start(sys.argv[2].split(','), exclude)
+    start(sys.argv[1], sys.argv[2], exclude)

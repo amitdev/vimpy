@@ -32,6 +32,7 @@ let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', '<SID>CloseMo
                         \ 'function'  : ['~Function', 'Enter Function: ', '<SID>CloseFun'] }
 
 au VimLeavePre * call s:WriteIndex()
+au BufWritePost *.py,*.pyx call s:UpdateIndex()
 
 python << endpython
 import vim
@@ -49,15 +50,19 @@ import tok
 def _set_storage(path):
     if os.path.exists(path):
         st.init(path)
-        print 'Loaded Project with %d modules' % len(st.modules.skeys)
+        print 'Loaded %d modules which has %d classes and %d functions.' % st.counts()
     else:
         print 'Invalid Project File'
 
 st = storage.storage('')
 endpython
 
-if !exists(":PyProj")
-    command -nargs=1 -complete=file PyProj :python _set_storage(<q-args>)
+if !exists(":VimpyLoad")
+    command -nargs=1 -complete=file VimpyLoad :python _set_storage(<q-args>)
+endif
+
+if !exists(":VimpyCreate")
+    command -nargs=+ -complete=file VimpyCreate :python vimpy.start(<f-args>)
 endif
 
 fun! s:UpdateIndex()
@@ -171,7 +176,6 @@ function! s:CloseBuf(fn)
             let path = strpart(pos, 0, ind)
             let line = strpart(pos, ind+1)
             exe s:EditCmd . " " . path
-            au BufWritePost <buffer> call s:UpdateIndex()
             call cursor(line, 0)
         endif
     else
