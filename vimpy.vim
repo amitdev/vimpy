@@ -26,9 +26,12 @@ nnoremap <leader>gf :call <SID>GotoFun()<CR>
 " Open new files in a split or buffer?
 let s:EditCmd = "e"
 
+" -- Implementation starts here - modify with care --
 let s:bufdetails = { 'module' : ['~Module', 'Enter Module Name: ', '<SID>CloseModule'], 
                         \ 'class'  : ['~Class', 'Enter Class Name: ', '<SID>CloseClass'], 
                         \ 'function'  : ['~Function', 'Enter Function: ', '<SID>CloseFun'] }
+
+au VimLeavePre * call s:WriteIndex()
 
 python << endpython
 import vim
@@ -40,6 +43,7 @@ if not scriptdir.endswith('vimpy'):
     scriptdir = os.path.join(scriptdir, 'vimpy')
 sys.path.insert(0, scriptdir)
 import storage
+import vimpy
 import tok
 
 def _set_storage(path):
@@ -55,6 +59,20 @@ endpython
 if !exists(":PyProj")
     command -nargs=1 -complete=file PyProj :python _set_storage(<q-args>)
 endif
+
+fun! s:UpdateIndex()
+python << endpython
+if vim.current.buffer.name in st.paths:
+    vimpy.st = st
+    vimpy.parsefile(vim.current.buffer.name)
+endpython
+endfun
+
+fun! s:WriteIndex()
+python << endpython
+st.close()
+endpython
+endfun
 
 fun! s:GetModule(pfx)
 python << endpython
@@ -153,6 +171,7 @@ function! s:CloseBuf(fn)
             let path = strpart(pos, 0, ind)
             let line = strpart(pos, ind+1)
             exe s:EditCmd . " " . path
+            au BufWritePost <buffer> call s:UpdateIndex()
             call cursor(line, 0)
         endif
     else

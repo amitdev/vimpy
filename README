@@ -15,10 +15,9 @@ Usage
 Usage is similar to how ctags/ptags work in Vim. Basically there are 3 steps:
 
 1. Create the index file. The vimpy.py can be used to create the index file. See 'python vimpy.py' for usage.
-   This is a one time operation. When some files change, the index has to be re-built (it only processes the modified files).
-   In future this might be autmated, but currently this has to be manually created.
+   This is a one time operation. The index will be automatically updated if you edit the files using vim, otherwise this can be rerun and only the changed files will be updated.
 
-2. Load the index file in Vim. This can be done using ':PyProj <file-name>' inside Vim. This can typically be done in the vimrc or through
+2. Load the index file in Vim. This can be done using ':VimpyLoad <file-name>' inside Vim. This can typically be done in the vimrc or through
    commandline as well.
 
 3. Now it is ready to use! Following commands (the Keybindings can be changed in vimpy.vim) can be used to navigate to any desired module:
@@ -35,8 +34,6 @@ Usage is similar to how ctags/ptags work in Vim. Basically there are 3 steps:
 TODO
 ----
 
-There are lots of things to do. Mahor ones being:
+There are lots of things to do. Major ones being:
  - Support packages
- - Support pyrex/cython modules
  - Make the goto option more intelligent
-

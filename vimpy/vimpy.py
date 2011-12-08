@@ -1,8 +1,9 @@
 import sys
-import ast
 import _ast
 import os
 import storage
+import compiler
+from compiler import visitor as ast
 
 st = None
 count = 0
@@ -10,23 +11,22 @@ modcount = 0
 errors = []
 DEBUG = False
 
-class visitor(ast.NodeVisitor):
+class visitor(ast.ASTVisitor):
 
-    def startModule(self, node, val, pth):
+    def __init__(self, val, pth):
         self.module = val
         self.path = pth
         self.klass = None
         #print '\nAdding Module %s in %s----------' % (self.module, self.path)
         st.addmodule(self.module, self.path)
-        ast.NodeVisitor.generic_visit(self, node)
         #print 'Done Module %s in %s----------\n' % (self.module, self.path)
 
-    def visit_ClassDef(self, node):
+    def visitClass(self, node):
         self.klass = node.name
-        #print 'Adding class %r in %s' % (node, self.module)        
+        #print 'Adding class %r in %s' % (node.name, self.module)
         st.addclass(node.name, self.module, self.path, node.lineno)
         #self.addSub(node)
-        ast.NodeVisitor.generic_visit(self, node)
+        compiler.walk(node.code, self)
         self.klass = None
 
     def addsub(self, node):
@@ -39,10 +39,11 @@ class visitor(ast.NodeVisitor):
                 # The superclass is an expresion. Atleast log it later.
                 pass
 
-    def visit_FunctionDef(self, node):
+    def visitFunction(self, node):
         module = self.module
         if self.klass is not None:
             module = '%s :: %s' % (self.module, self.klass)
+        #print 'Adding fun %r in %s' % (node.name, module)
         st.addfunction(node.name, module, self.path, node.lineno)
 
 def parsepyx(lines, filename, pth):
@@ -50,7 +51,7 @@ def parsepyx(lines, filename, pth):
     for n, line in enumerate(lines):
         l = line.strip()
         try:
-            if (l.startswith('class') or l.startswith('cdef class')) and l[-1] == ':':       
+            if (l.startswith('class') or l.startswith('cdef class')) and l[-1] == ':':
                 end = l.find('(')
                 st.addclass(l[l.rfind(' ',0, end)+1:end], filename, pth, n+1)
             elif l.startswith('def') or l.startswith('cdef'):
@@ -60,24 +61,40 @@ def parsepyx(lines, filename, pth):
         except Exception:
             pass
 
-def parse(filename, pth, ispython=True):
-    global count, modcount
-    count += 1
-    if count != 1:
-        sys.stdout.write('\b\b\b\b\b\b') 
-    sys.stdout.write("%06d" % count)
+def parsefile(pth, ispython=True, errs=None, filename=None):
+    if filename is None:
+        filename = os.path.basename(pth)
+        ispython = filename.endswith('.py')
+        if not ispython and not filename.endswith('.pyx'):
+            return
     if st.ismodified(pth):
+        is_update = pth in st.paths
         if ispython:
             try:
-                visitor().startModule(ast.parse(file(pth).read(), filename), filename, pth)
+                compiler.walk(compiler.parseFile(pth), visitor(filename, pth))
             except Exception, err:
-                errors.append('Cannot Parse %s because of %r \n' % (pth, err))
+                if errs is not None:
+                    errs.append('Cannot Parse %s because of %r \n' % (pth, err))
         else:
             st.addmodule(filename, pth)
             f = open(pth)
             parsepyx(f.readlines(), filename, pth)
         st.modified(pth)
-        modcount += 1
+        if is_update:
+            st._init()
+        return 1
+    return 0
+
+def parse(filename, pth):
+    ispython = filename.endswith('.py')
+    if not ispython and not filename.endswith('.pyx'):
+        return
+    global count, modcount
+    count += 1
+    if count != 1:
+        sys.stdout.write('\b\b\b\b\b\b')
+    sys.stdout.write("%06d" % count)
+    modcount += parsefile(pth)
 
 def excluded(folder, exclude):
     fs = folder.split(os.path.sep)
@@ -93,14 +110,11 @@ def walk(folder, exclude):
             continue
         processed.add(root)
         for name in files:
-            if name.endswith('.py'):
-                parse(name, os.path.join(root, name))
-            elif name.endswith('.pyx'):
-                parse(name, os.path.join(root, name), False)
+            parse(name, os.path.join(root, name))
 
-def start(roots, exclude=[]):    
-    roots = [os.path.abspath(p.strip()) for p in roots]
-    exclude = [os.path.abspath(p.strip()).split(os.path.sep) for p in exclude]
+def start(roots, exclude=[]):
+    roots = [os.path.realpath(p.strip()) for p in roots]
+    exclude = [os.path.realpath(p.strip()).split(os.path.sep) for p in exclude]
     sys.stdout.write ("Indexing ")
     for p in roots:
         walk(p, exclude)
